@@ -312,6 +312,35 @@ func (c Card) SetRevision(t time.Time) {
 	c.SetValue(FieldRevision, t.Format(timestampLayout))
 }
 
+func (c Card) GetGroupByValue(fieldIndex string, value string) (string) {
+    for _, field := range c[fieldIndex] {
+        if value == field.Value {
+            return field.Group
+        }
+    }
+    return ""
+}
+
+func (c Card) GetAllValueByGroup(fieldIndex string, group string) ([]string) {
+    var res []string
+    for _, field := range c[fieldIndex] {
+        if group == field.Group {
+            res = append(res, field.Value)
+        }
+    }
+    return res
+}
+
+
+func (c Card) GetValueByGroup(fieldIndex string, group string) (string) {
+    for _, field := range c[fieldIndex] {
+        if group == field.Group {
+            return field.Value
+        }
+    }
+    return ""
+}
+
 // A field contains a value and some parameters.
 type Field struct {
 	Value  string
