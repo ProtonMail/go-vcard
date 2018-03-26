@@ -2,6 +2,7 @@
 package vcard
 
 import (
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -312,33 +313,55 @@ func (c Card) SetRevision(t time.Time) {
 	c.SetValue(FieldRevision, t.Format(timestampLayout))
 }
 
-func (c Card) GetGroupByValue(fieldIndex string, value string) (string) {
-    for _, field := range c[fieldIndex] {
-        if value == field.Value {
-            return field.Group
-        }
-    }
-    return ""
+func (c Card) GetGroupByValue(fieldIndex string, value string) string {
+	for _, field := range c[fieldIndex] {
+		if value == field.Value {
+			return field.Group
+		}
+	}
+	return ""
 }
 
-func (c Card) GetAllValueByGroup(fieldIndex string, group string) ([]string) {
-    var res []string
-    for _, field := range c[fieldIndex] {
-        if group == field.Group {
-            res = append(res, field.Value)
-        }
-    }
-    return res
+// Returns all values of the given group sorted by preference (as defined in RFC 6350)
+func (c Card) GetAllValueByGroup(fieldIndex string, group string) []string {
+
+	type tupple struct {
+		pref  int
+		value string
+	}
+	var priRes []tupple
+	for _, field := range c[fieldIndex] {
+		if group == field.Group {
+			n := 100 // the default is least preferred as per RFC
+			if pref := field.Params.Get(ParamPreferred); pref != "" {
+				n, _ = strconv.Atoi(pref)
+			} else if field.Params.HasType("pref") {
+				// Apple Contacts adds "pref" to the TYPE param
+				n = 1
+			}
+
+			priRes = append(priRes, tupple{pref:n,value:field.Value})
+		}
+	}
+
+	sort.Slice(priRes, func(i, j int) bool {
+		return priRes[i].pref < priRes[j].pref
+	})
+
+	var res []string
+	for _, value := range priRes {
+		res = append(res, value.value)
+	}
+	return res
 }
 
-
-func (c Card) GetValueByGroup(fieldIndex string, group string) (string) {
-    for _, field := range c[fieldIndex] {
-        if group == field.Group {
-            return field.Value
-        }
-    }
-    return ""
+func (c Card) GetValueByGroup(fieldIndex string, group string) string {
+	for _, field := range c[fieldIndex] {
+		if group == field.Group {
+			return field.Value
+		}
+	}
+	return ""
 }
 
 // A field contains a value and some parameters.
